@@ -1,7 +1,10 @@
 package org.fossasia.openevent.fragments;
 
 import android.annotation.TargetApi;
+import android.provider.CalendarContract;
 import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -29,6 +32,7 @@ import com.squareup.otto.Subscribe;
 
 import org.fossasia.openevent.OpenEventApp;
 import org.fossasia.openevent.R;
+import org.fossasia.openevent.activities.MainActivity;
 import org.fossasia.openevent.activities.SearchActivity;
 import org.fossasia.openevent.adapters.GlobalSearchAdapter;
 import org.fossasia.openevent.adapters.SocialLinksListAdapter;
@@ -41,6 +45,7 @@ import org.fossasia.openevent.data.extras.SpeakersCall;
 import org.fossasia.openevent.dbutils.RealmDataRepository;
 import org.fossasia.openevent.events.BookmarkChangedEvent;
 import org.fossasia.openevent.events.EventLoadedEvent;
+import org.fossasia.openevent.utils.ConstantStrings;
 import org.fossasia.openevent.utils.DateConverter;
 import org.fossasia.openevent.utils.Utils;
 import org.fossasia.openevent.utils.Views;
@@ -89,6 +94,10 @@ public class AboutFragment extends BaseFragment {
     protected TextView eventDetailsHeader;
     @BindView(R.id.slidin_down_part)
     protected LinearLayout slidinDownPart;
+    @BindView(R.id.ll_event_date)
+    protected LinearLayout eventDate;
+    @BindView(R.id.ll_event_loc)
+    protected LinearLayout eventLoc;
 
 
     private ArrayList<String> dateList = new ArrayList<>();
@@ -98,6 +107,7 @@ public class AboutFragment extends BaseFragment {
     private RealmResults<Session> bookmarksResult;
     private List<Object> sessions = new ArrayList<>();
     private List<SocialLink> socialLinks = new ArrayList<>();
+    private static final String FRAGMENT_TAG_REST = "fgtr";
 
     private RealmDataRepository realmRepo = RealmDataRepository.getDefaultInstance();
     private Event event;
@@ -110,6 +120,32 @@ public class AboutFragment extends BaseFragment {
         setUpBookmarksRecyclerView();
         setUpSocialLinksRecyclerView();
 
+        eventLoc.setOnClickListener(v -> {
+            Bundle bundle = new Bundle();
+            bundle.putBoolean(ConstantStrings.IS_MAP_FRAGMENT_FROM_MAIN_ACTIVITY, false);
+            bundle.putString(ConstantStrings.LOCATION_NAME, event.getLocationName());
+
+            FragmentTransaction fragmentTransaction = getFragmentManager().beginTransaction();
+            Context context = getActivity();
+            Fragment mapFragment = ((OpenEventApp) context.getApplicationContext())
+                    .getMapModuleFactory()
+                    .provideMapModule()
+                    .provideMapFragment();
+            mapFragment.setArguments(bundle);
+            fragmentTransaction.replace(R.id.content_frame, mapFragment, FRAGMENT_TAG_REST).commit();
+            ((MainActivity) getActivity()).getSupportActionBar().setTitle(event.getLocationName());
+
+        });
+
+        eventDate.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_INSERT);
+            intent.setType("vnd.android.cursor.item/event");
+            intent.putExtra(CalendarContract.Events.TITLE, event.getName());
+            intent.putExtra(CalendarContract.Events.DESCRIPTION, event.getDescription());
+            intent.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, DateConverter.formatDateWithDefault(DateConverter.FORMAT_24H, event.getStartsAt()));
+            intent.putExtra(CalendarContract.EXTRA_EVENT_END_TIME, DateConverter.formatDateWithDefault(DateConverter.FORMAT_24H, event.getEndsAt()));
+            startActivity(intent);
+        });
         return view;
     }
 

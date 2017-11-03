@@ -79,6 +79,7 @@ import org.fossasia.openevent.fragments.AboutFragment;
 import org.fossasia.openevent.fragments.CommentsDialogFragment;
 import org.fossasia.openevent.fragments.FeedFragment;
 import org.fossasia.openevent.fragments.LocationsFragment;
+import org.fossasia.openevent.fragments.OSMapFragment;
 import org.fossasia.openevent.fragments.ScheduleFragment;
 import org.fossasia.openevent.fragments.SpeakersListFragment;
 import org.fossasia.openevent.fragments.SponsorsFragment;
@@ -562,22 +563,27 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
 
     @Override
     public void onBackPressed() {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.content_frame);
         if (!isTwoPane && drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
         } else if (atHome) {
             if (backPressedOnce) {
                 super.onBackPressed();
-            } else {
+            } else if (fragment instanceof AboutFragment) {
                 backPressedOnce = true;
                 Snackbar snackbar = Snackbar.make(mainFrame, R.string.press_back_again, 2000);
                 snackbar.show();
                 new Handler().postDelayed(() -> backPressedOnce = false, 2000);
+            } else if (fragment instanceof OSMapFragment) {
+                replaceFragment(new AboutFragment(), R.string.menu_home);
+                addShadowToAppBar(true);
             }
         } else {
             replaceFragment(new AboutFragment(), R.string.menu_home);
             navigationView.setCheckedItem(R.id.nav_home);
             addShadowToAppBar(true);
         }
+
     }
 
     public void addShadowToAppBar(boolean addShadow) {
