@@ -1,7 +1,7 @@
 package org.fossasia.openevent.fragments;
 
 import android.annotation.TargetApi;
-import android.provider.CalendarContract;
+import android.app.Activity;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
@@ -107,10 +107,15 @@ public class AboutFragment extends BaseFragment {
     private RealmResults<Session> bookmarksResult;
     private List<Object> sessions = new ArrayList<>();
     private List<SocialLink> socialLinks = new ArrayList<>();
-    private static final String FRAGMENT_TAG_REST = "fgtr";
+    private static final String MAP_FRAGMENT_TAG = "mapFragment";
 
     private RealmDataRepository realmRepo = RealmDataRepository.getDefaultInstance();
     private Event event;
+    private OnMapSelectedListener mapFragmentCallback;
+
+    public interface OnMapSelectedListener {
+        public void onMapSelected(boolean value);
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -121,30 +126,28 @@ public class AboutFragment extends BaseFragment {
         setUpSocialLinksRecyclerView();
 
         eventLoc.setOnClickListener(v -> {
-            Bundle bundle = new Bundle();
-            bundle.putBoolean(ConstantStrings.IS_MAP_FRAGMENT_FROM_MAIN_ACTIVITY, false);
-            bundle.putString(ConstantStrings.LOCATION_NAME, event.getLocationName());
+            if (event.isValid()) {
+                Bundle bundle = new Bundle();
+                bundle.putBoolean(ConstantStrings.IS_MAP_FRAGMENT_FROM_MAIN_ACTIVITY, true);
+                bundle.putString(ConstantStrings.LOCATION_NAME, event.getLocationName());
 
-            FragmentTransaction fragmentTransaction = getFragmentManager().beginTransaction();
-            Context context = getActivity();
-            Fragment mapFragment = ((OpenEventApp) context.getApplicationContext())
-                    .getMapModuleFactory()
-                    .provideMapModule()
-                    .provideMapFragment();
-            mapFragment.setArguments(bundle);
-            fragmentTransaction.replace(R.id.content_frame, mapFragment, FRAGMENT_TAG_REST).commit();
-            ((MainActivity) getActivity()).getSupportActionBar().setTitle(event.getLocationName());
-
+                FragmentTransaction fragmentTransaction = getFragmentManager().beginTransaction();
+                Context context = getActivity();
+                Fragment mapFragment = ((OpenEventApp) context.getApplicationContext())
+                        .getMapModuleFactory()
+                        .provideMapModule()
+                        .provideMapFragment();
+                mapFragment.setArguments(bundle);
+                fragmentTransaction.replace(R.id.content_frame, mapFragment, MAP_FRAGMENT_TAG).commit();
+                ((MainActivity) getActivity()).getSupportActionBar().setTitle(event.getLocationName());
+                mapFragmentCallback.onMapSelected(true);
+            }
         });
 
         eventDate.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_INSERT);
-            intent.setType("vnd.android.cursor.item/event");
-            intent.putExtra(CalendarContract.Events.TITLE, event.getName());
-            intent.putExtra(CalendarContract.Events.DESCRIPTION, event.getDescription());
-            intent.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, DateConverter.formatDateWithDefault(DateConverter.FORMAT_24H, event.getStartsAt()));
-            intent.putExtra(CalendarContract.EXTRA_EVENT_END_TIME, DateConverter.formatDateWithDefault(DateConverter.FORMAT_24H, event.getEndsAt()));
-            startActivity(intent);
+            if (event.isValid())
+                startActivity(Utils.eventCalendar(event));
+
         });
         return view;
     }
@@ -348,6 +351,23 @@ public class AboutFragment extends BaseFragment {
     public void onResume() {
         super.onResume();
         loadData();
+    }
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        try {
+            mapFragmentCallback = (OnMapSelectedListener) activity;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString()
+                    + "must implement OnMapSelectedListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mapFragmentCallback = null;
     }
 
     private void handleVisibility() {

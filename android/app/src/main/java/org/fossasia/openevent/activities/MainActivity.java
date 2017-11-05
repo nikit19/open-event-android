@@ -79,7 +79,6 @@ import org.fossasia.openevent.fragments.AboutFragment;
 import org.fossasia.openevent.fragments.CommentsDialogFragment;
 import org.fossasia.openevent.fragments.FeedFragment;
 import org.fossasia.openevent.fragments.LocationsFragment;
-import org.fossasia.openevent.fragments.OSMapFragment;
 import org.fossasia.openevent.fragments.ScheduleFragment;
 import org.fossasia.openevent.fragments.SpeakersListFragment;
 import org.fossasia.openevent.fragments.SponsorsFragment;
@@ -113,7 +112,7 @@ import io.realm.RealmList;
 import io.realm.RealmResults;
 import timber.log.Timber;
 
-public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCallback {
+public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCallback, AboutFragment.OnMapSelectedListener {
 
     private static final String STATE_FRAGMENT = "stateFragment";
     private static final String NAV_ITEM = "navItem";
@@ -128,6 +127,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
     private boolean isAuthEnabled = SharedPreferencesUtil.getBoolean(ConstantStrings.IS_AUTH_ENABLED, false);
     private boolean customTabsSupported;
     private int currentMenuItemId;
+    private boolean isMapFragment;
 
     @BindView(R.id.toolbar) Toolbar toolbar;
     @BindView(R.id.nav_view) NavigationView navigationView;
@@ -564,6 +564,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
     @Override
     public void onBackPressed() {
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.content_frame);
+
         if (!isTwoPane && drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
         } else if (atHome) {
@@ -574,7 +575,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
                 Snackbar snackbar = Snackbar.make(mainFrame, R.string.press_back_again, 2000);
                 snackbar.show();
                 new Handler().postDelayed(() -> backPressedOnce = false, 2000);
-            } else if (fragment instanceof OSMapFragment) {
+            } else if (isMapFragment) {
                 replaceFragment(new AboutFragment(), R.string.menu_home);
                 addShadowToAppBar(true);
             }
@@ -583,7 +584,6 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
             navigationView.setCheckedItem(R.id.nav_home);
             addShadowToAppBar(true);
         }
-
     }
 
     public void addShadowToAppBar(boolean addShadow) {
@@ -863,5 +863,10 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
         bundle.putParcelableArrayList(ConstantStrings.FACEBOOK_COMMENTS, new ArrayList<>(commentItems));
         newFragment.setArguments(bundle);
         newFragment.show(fragmentManager, "Comments");
+    }
+
+    @Override
+    public void onMapSelected(boolean value) {
+        isMapFragment = value;
     }
 }
