@@ -220,6 +220,8 @@ public class SessionsListAdapter extends BaseRVAdapter<Session, SessionViewHolde
         final int sessionId = session.getId();
 
         holder.sessionBookmarkIcon.setOnClickListener(v -> {
+            if (track == null) return;
+
             if (session.getIsBookmarked()) {
 
                 realmRepo.setBookmark(sessionId, false).subscribe();
