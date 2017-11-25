@@ -269,8 +269,10 @@ public class EditProfileActivity extends AppCompatActivity {
         SharedPreferencesUtil.putString(ConstantStrings.USER_FIRST_NAME, user.getFirstName());
         SharedPreferencesUtil.putString(ConstantStrings.USER_LAST_NAME, user.getLastName());
 
-        if (firstName != null)
+        if (firstName != null) {
             firstNameInput.setText(firstName.trim());
+            firstNameInput.setSelection(firstName.length());
+        }
         if (lastName != null)
             lastNameInput.setText(lastName.trim());
 

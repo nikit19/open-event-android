@@ -27,6 +27,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.Toolbar;
 import android.text.Html;
+import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -234,9 +235,9 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
             String firstName = SharedPreferencesUtil.getString(ConstantStrings.USER_FIRST_NAME, null);
             String lastName = SharedPreferencesUtil.getString(ConstantStrings.USER_LAST_NAME, null);
 
-            if (firstName != null && lastName != null && !firstName.isEmpty() && !lastName.isEmpty())
+            if (firstName != null && lastName != null && !TextUtils.isEmpty(firstName) && !TextUtils.isEmpty(lastName))
                 userProfileMenuItem.setTitle(firstName + " " + lastName);
-            else if (firstName != null && !firstName.isEmpty())
+            else if (firstName != null && !TextUtils.isEmpty(firstName))
                 userProfileMenuItem.setTitle(firstName);
             else if (email != null)
                 userProfileMenuItem.setTitle(email);
@@ -258,7 +259,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
     protected void onResume() {
         super.onResume();
         OpenEventApp.getEventBus().register(this);
-       setUserProfileMenuItem();
+        setUserProfileMenuItem();
     }
 
     @Override
