@@ -235,11 +235,9 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
             String firstName = SharedPreferencesUtil.getString(ConstantStrings.USER_FIRST_NAME, null);
             String lastName = SharedPreferencesUtil.getString(ConstantStrings.USER_LAST_NAME, null);
 
-            if (firstName != null && lastName != null && !TextUtils.isEmpty(firstName) && !TextUtils.isEmpty(lastName))
+            if (!TextUtils.isEmpty(firstName))
                 userProfileMenuItem.setTitle(firstName + " " + lastName);
-            else if (firstName != null && !TextUtils.isEmpty(firstName))
-                userProfileMenuItem.setTitle(firstName);
-            else if (email != null)
+            else if (!TextUtils.isEmpty(email))
                 userProfileMenuItem.setTitle(email);
         }
     }
