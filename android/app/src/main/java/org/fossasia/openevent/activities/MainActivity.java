@@ -309,7 +309,6 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
 
             drawerLayout.addDrawerListener(smoothActionBarToggle);
             ab.setDisplayHomeAsUpEnabled(true);
-            ab.setDisplayHomeAsUpEnabled(true);
             smoothActionBarToggle.syncState();
         } else if (toolbar!=null && toolbar.getTitle().equals(getString(R.string.menu_about))) {
             navigationView.setCheckedItem(R.id.nav_home);
@@ -506,6 +505,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.AdapterCal
         atHome = isAtHome;
 
         fragmentManager.beginTransaction()
+                .setCustomAnimations(R.anim.fade_in, R.anim.fade_out)
                 .replace(R.id.content_frame, fragment, TAG).commit();
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle(title);
