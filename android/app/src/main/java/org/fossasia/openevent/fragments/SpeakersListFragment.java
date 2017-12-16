@@ -10,7 +10,8 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
@@ -38,6 +39,7 @@ import org.fossasia.openevent.utils.SharedPreferencesUtil;
 import org.fossasia.openevent.utils.Utils;
 import org.fossasia.openevent.utils.Views;
 import org.fossasia.openevent.views.MarginDecoration;
+import org.fossasia.openevent.views.stickyheadersrecyclerview.StickyRecyclerHeadersDecoration;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -62,7 +64,6 @@ public class SpeakersListFragment extends BaseFragment implements SearchView.OnQ
     private List<Speaker> speakers = new ArrayList<>();
     private SpeakersListAdapter speakersListAdapter;
 
-    private GridLayoutManager gridLayoutManager;
 
     private String searchText = "";
     private SearchView searchView;
@@ -100,14 +101,21 @@ public class SpeakersListFragment extends BaseFragment implements SearchView.OnQ
         DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
         float width = displayMetrics.widthPixels / displayMetrics.density;
         final int spanCount = (int) (width / 150.00);
-        gridLayoutManager = new GridLayoutManager(getActivity(), spanCount);
 
         speakersListAdapter = new SpeakersListAdapter(speakers, getActivity());
 
-        speakersRecyclerView.addItemDecoration(new MarginDecoration(getContext()));
+        speakersRecyclerView.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
         speakersRecyclerView.setHasFixedSize(true);
         speakersRecyclerView.setAdapter(speakersListAdapter);
-        speakersRecyclerView.setLayoutManager(gridLayoutManager);
+        speakersRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        final StickyRecyclerHeadersDecoration headersDecoration = new StickyRecyclerHeadersDecoration(speakersListAdapter);
+        speakersRecyclerView.addItemDecoration(headersDecoration);
+        speakersListAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onChanged() {
+                headersDecoration.invalidateHeaders();
+            }
+        });
     }
 
     private void loadData() {
@@ -214,7 +222,6 @@ public class SpeakersListFragment extends BaseFragment implements SearchView.OnQ
         DisplayMetrics displayMetrics = getContext().getResources().getDisplayMetrics();
         float width = displayMetrics.widthPixels / displayMetrics.density;
         int spanCount = (int) (width / 150.00);
-        gridLayoutManager.setSpanCount(spanCount);
     }
 
     @Subscribe

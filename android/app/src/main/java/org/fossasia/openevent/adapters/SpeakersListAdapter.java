@@ -8,9 +8,13 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import org.fossasia.openevent.R;
+import org.fossasia.openevent.adapters.viewholders.HeaderViewHolder;
 import org.fossasia.openevent.adapters.viewholders.SpeakerViewHolder;
 import org.fossasia.openevent.data.Speaker;
+import org.fossasia.openevent.utils.ConstantStrings;
+import org.fossasia.openevent.utils.SharedPreferencesUtil;
 import org.fossasia.openevent.utils.Utils;
+import org.fossasia.openevent.views.stickyheadersrecyclerview.StickyRecyclerHeadersAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,12 +27,13 @@ import timber.log.Timber;
  * User: MananWason
  * Date: 11-06-2015
  */
-public class SpeakersListAdapter extends BaseRVAdapter<Speaker, SpeakerViewHolder> {
+public class SpeakersListAdapter extends BaseRVAdapter<Speaker, SpeakerViewHolder> implements StickyRecyclerHeadersAdapter<HeaderViewHolder> {
 
     private List<String> distinctOrgs = new ArrayList<>();
     private List<String> distinctCountry = new ArrayList<>();
 
     private Context context;
+    private int sortType;
     private List<Speaker> copyOfSpeakers = new ArrayList<>();
 
     public SpeakersListAdapter(List<Speaker> speakers, Context context) {
@@ -73,7 +78,7 @@ public class SpeakersListAdapter extends BaseRVAdapter<Speaker, SpeakerViewHolde
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_speaker, parent, false);
         SpeakerViewHolder speakerViewHolder = new SpeakerViewHolder(view, parent.getContext());
-        speakerViewHolder.setIsImageCircle(false);
+        speakerViewHolder.setIsImageCircle(true);
 
         return speakerViewHolder;
     }
@@ -112,4 +117,46 @@ public class SpeakersListAdapter extends BaseRVAdapter<Speaker, SpeakerViewHolde
         return distinctCountry.size();
     }
 
+    @Override
+    public long getHeaderId(int position) {
+        sortType = SharedPreferencesUtil.getInt(ConstantStrings.PREF_SORT_SPEAKER, 0);
+        Speaker current = getItem(position);
+
+        String name = current.getName();
+        String organisation = current.getOrganisation();
+        String country = current.getCountry();
+
+        if (sortType == 0)
+            return !name.isEmpty() ? name.toUpperCase().charAt(0) : 0;
+        else if (sortType == 1)
+            return !organisation.isEmpty() ? organisation.toUpperCase().charAt(0) : 0;
+        else
+            return !country.isEmpty() ? country.toUpperCase().charAt(0) : 0;
+    }
+
+    @Override
+    public HeaderViewHolder onCreateHeaderViewHolder(ViewGroup parent) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.recycler_view_header, parent, false);
+        return new HeaderViewHolder(view);
+    }
+
+    @Override
+    public void onBindHeaderViewHolder(HeaderViewHolder holder, int position) {
+        sortType = SharedPreferencesUtil.getInt(ConstantStrings.PREF_SORT_SPEAKER, 0);
+        String speakerData;
+        if (sortType == 0)
+            speakerData = Utils.checkStringEmpty(getItem(position).getName());
+        else if (sortType == 1)
+            speakerData = Utils.checkStringEmpty(getItem(position).getOrganisation());
+        else
+            speakerData = Utils.checkStringEmpty(getItem(position).getCountry());
+
+        if (!Utils.isEmpty(speakerData) && sortType == 0)
+            holder.header.setText(String.valueOf(speakerData.toUpperCase().charAt(0)));
+        else if (!Utils.isEmpty(speakerData) && (sortType == 1 || sortType == 2))
+            holder.header.setText(String.valueOf(speakerData));
+        else
+            holder.header.setText("#");
+    }
 }
