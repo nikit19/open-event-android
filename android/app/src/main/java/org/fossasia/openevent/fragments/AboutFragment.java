@@ -254,7 +254,7 @@ public class AboutFragment extends BaseFragment implements OnBookmarkSelectedLis
                 displaySpeakersCallInformation();
                 break;
             case R.id.action_download_latest_data:
-                ((MainActivity) getActivity()).downloadData();
+                ((MainActivity) getActivity()).showDownloadDialog();
                 break;
             default:
                 //No option selected. Do Nothing..
