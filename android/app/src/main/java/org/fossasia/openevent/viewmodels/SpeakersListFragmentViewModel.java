@@ -2,34 +2,40 @@ package org.fossasia.openevent.viewmodels;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.MutableLiveData;
+import android.arch.lifecycle.Transformations;
 import android.arch.lifecycle.ViewModel;
 
 import org.fossasia.openevent.data.Speaker;
+import org.fossasia.openevent.dbutils.LiveRealmData;
 import org.fossasia.openevent.dbutils.RealmDataRepository;
 
 import java.util.List;
 
-import io.realm.RealmResults;
-
 import static org.fossasia.openevent.utils.SortOrder.sortOrderSpeaker;
 
-public class SpeakersListFragmentViewModel extends ViewModel{
+public class SpeakersListFragmentViewModel extends ViewModel {
 
-    private MutableLiveData<List<Speaker>> speakersList;
+    private LiveData<List<Speaker>> speakersList;
     private RealmDataRepository realmRepo;
-    private RealmResults<Speaker> realmResults;
     private String searchText = "";
+    private int speakersListSortType = 0;
 
     public SpeakersListFragmentViewModel() {
         realmRepo = RealmDataRepository.getDefaultInstance();
+        speakersList = new MutableLiveData<>();
+        subscribeToSpeakers();
     }
 
-    public LiveData<List<Speaker>> getSpeakers() {
-        speakersList = new MutableLiveData<>();
-        realmResults = realmRepo.getSpeakers(sortOrderSpeaker());
-        realmResults.addChangeListener((speakers, orderedCollectionChangeSet) -> {
-            speakersList.setValue(speakers);
-        });
+    private void subscribeToSpeakers() {
+        LiveRealmData<Speaker> speakerLiveRealmData = RealmDataRepository.asLiveData(realmRepo.getSpeakers(sortOrderSpeaker()));
+        speakersList = Transformations.map(speakerLiveRealmData, input -> input);
+    }
+
+    public LiveData<List<Speaker>> getSpeakers(int sortType) {
+        if (sortType != speakersListSortType) {
+            subscribeToSpeakers();
+            speakersListSortType = sortType;
+        }
         return speakersList;
     }
 
@@ -43,7 +49,6 @@ public class SpeakersListFragmentViewModel extends ViewModel{
 
     @Override
     protected void onCleared() {
-        realmResults.removeAllChangeListeners();
         super.onCleared();
     }
 }
