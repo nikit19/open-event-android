@@ -1,36 +1,41 @@
 package org.fossasia.openevent.viewmodels;
 
 import android.arch.lifecycle.LiveData;
-import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.Transformations;
 import android.arch.lifecycle.ViewModel;
 
 import org.fossasia.openevent.data.Microlocation;
-import org.fossasia.openevent.dbutils.LiveRealmData;
+import org.fossasia.openevent.dbutils.FilterableRealmLiveData;
 import org.fossasia.openevent.dbutils.RealmDataRepository;
 
 import java.util.List;
+import java.util.Locale;
+
+import io.reactivex.functions.Predicate;
 
 public class LocationsFragmentViewModel extends ViewModel {
 
-    private LiveData<List<Microlocation>> locations;
-    private RealmDataRepository realmRepo;
-
+    private FilterableRealmLiveData<Microlocation> filterableRealmLiveData;
+    private LiveData<List<Microlocation>> filteredLocations;
     private String searchText = "";
 
     public LocationsFragmentViewModel() {
-        realmRepo = RealmDataRepository.getDefaultInstance();
-        locations = new MutableLiveData<>();
-        subscribeToLocations();
+        filterableRealmLiveData = RealmDataRepository.asFilterableLiveData(RealmDataRepository.getDefaultInstance().getLocations());
     }
 
-    private void subscribeToLocations() {
-        LiveRealmData<Microlocation> microlocationLiveRealmData = RealmDataRepository.asLiveData(realmRepo.getLocations());
-        locations = Transformations.map(microlocationLiveRealmData, input -> input);
-    }
-
-    public LiveData<List<Microlocation>> getLocations() {
-        return locations;
+    public LiveData<List<Microlocation>> getLocations(String searchText) {
+        if (!this.searchText.equals(searchText) || filteredLocations == null) {
+            setSearchText(searchText);
+            final String query = searchText.toLowerCase(Locale.getDefault());
+            Predicate<Microlocation> predicate = location -> location.getName()
+                    .toLowerCase(Locale.getDefault())
+                    .contains(query);
+            filterableRealmLiveData.filter(predicate);
+            if (filteredLocations == null) {
+                filteredLocations = Transformations.map(filterableRealmLiveData, input -> input);
+            }
+        }
+        return filteredLocations;
     }
 
     public String getSearchText() {
@@ -39,10 +44,5 @@ public class LocationsFragmentViewModel extends ViewModel {
 
     public void setSearchText(String searchText) {
         this.searchText = searchText;
-    }
-
-    @Override
-    protected void onCleared() {
-        super.onCleared();
     }
 }
