@@ -1,6 +1,5 @@
 package org.fossasia.openevent.adapters;
 
-import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -8,54 +7,32 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import org.fossasia.openevent.R;
+import org.fossasia.openevent.adapters.viewholders.HeaderViewHolder;
 import org.fossasia.openevent.adapters.viewholders.SpeakerViewHolder;
 import org.fossasia.openevent.data.Speaker;
+import org.fossasia.openevent.utils.ConstantStrings;
+import org.fossasia.openevent.utils.SharedPreferencesUtil;
 import org.fossasia.openevent.utils.Utils;
+import org.fossasia.openevent.views.stickyheadersrecyclerview.StickyRecyclerHeadersAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-
-import io.reactivex.Observable;
-import timber.log.Timber;
 
 /**
  * User: MananWason
  * Date: 11-06-2015
  */
-public class SpeakersListAdapter extends BaseRVAdapter<Speaker, SpeakerViewHolder> {
+public class SpeakersListAdapter extends BaseRVAdapter<Speaker, SpeakerViewHolder> implements StickyRecyclerHeadersAdapter<HeaderViewHolder> {
 
     private List<String> distinctOrgs = new ArrayList<>();
     private List<String> distinctCountry = new ArrayList<>();
+    private List<String> Orgs = new ArrayList<>();
+    private List<String> Country = new ArrayList<>();
 
-    private Context context;
-    private List<Speaker> copyOfSpeakers = new ArrayList<>();
+    private int sortType;
 
-    public SpeakersListAdapter(List<Speaker> speakers, Context context) {
+    public SpeakersListAdapter(List<Speaker> speakers) {
         super(speakers);
-        this.context = context;
-    }
-
-    public void setCopyOfSpeakers(List<Speaker> speakers) {
-        this.copyOfSpeakers = speakers;
-    }
-
-    public void filter(String constraint) {
-        final String query = constraint.toLowerCase(Locale.getDefault());
-
-        List<Speaker> filteredSpeakersList = Observable.fromIterable(copyOfSpeakers)
-                .filter(speaker -> speaker.getName()
-                        .toLowerCase(Locale.getDefault())
-                        .contains(query))
-                .toList().blockingGet();
-
-        Timber.d("Filtering done total results %d", filteredSpeakersList.size());
-
-        if (filteredSpeakersList.isEmpty()) {
-            Timber.e("No results published. There is an error in query. Check " + getClass().getName() + " filter!");
-        }
-
-        animateTo(filteredSpeakersList);
     }
 
     @Override
@@ -110,6 +87,57 @@ public class SpeakersListAdapter extends BaseRVAdapter<Speaker, SpeakerViewHolde
 
     public int getDistinctCountry(){
         return distinctCountry.size();
+    }
+
+    @Override
+    public long getHeaderId(int position) {
+        sortType = SharedPreferencesUtil.getInt(ConstantStrings.PREF_SORT_SPEAKER, 0);
+        Speaker current = getItem(position);
+
+        String name = current.getName();
+        String organisation = current.getOrganisation();
+        String country = current.getCountry();
+
+        if (sortType == 0)
+            return name.toUpperCase().charAt(0);
+        else if (sortType == 1) {
+            if (!Orgs.contains(organisation)) {
+                Orgs.add(organisation);
+            }
+            return Orgs.indexOf(organisation);
+        } else {
+            if (!Country.contains(country)) {
+                Country.add(country);
+            }
+            return Country.indexOf(country);
+        }
+    }
+
+    @Override
+    public HeaderViewHolder onCreateHeaderViewHolder(ViewGroup parent) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.recycler_view_header, parent, false);
+        return new HeaderViewHolder(view);
+    }
+
+    @Override
+    public void onBindHeaderViewHolder(HeaderViewHolder holder, int position) {
+        sortType = SharedPreferencesUtil.getInt(ConstantStrings.PREF_SORT_SPEAKER, 0);
+        String speakerData;
+
+        if (sortType == 0)
+            speakerData = Utils.checkStringEmpty(getItem(position).getName());
+        else if (sortType == 1)
+            speakerData = Utils.checkStringEmpty(getItem(position).getOrganisation());
+        else
+            speakerData = Utils.checkStringEmpty(getItem(position).getCountry());
+
+        if (!TextUtils.isEmpty(speakerData) && sortType == 0)
+            holder.header.setText(String.valueOf(speakerData.toUpperCase().charAt(0)));
+        else if (!TextUtils.isEmpty(speakerData) && (sortType == 1 || sortType == 2))
+            holder.header.setText(String.valueOf(speakerData));
+        else
+            holder.header.setText(String.valueOf("#"));
     }
 
 }

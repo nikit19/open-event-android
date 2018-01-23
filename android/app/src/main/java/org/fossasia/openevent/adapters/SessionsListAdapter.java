@@ -125,10 +125,10 @@ public class SessionsListAdapter extends BaseRVAdapter<Session, SessionViewHolde
         ZonedDateTime current = ZonedDateTime.now();
         if (DateService.isUpcomingSession(start, end, current)) {
             holder.sessionStatus.setVisibility(View.VISIBLE);
-            holder.sessionStatus.setText("UPCOMING");
+            holder.sessionStatus.setText(R.string.status_upcoming);
         } else if (DateService.isOngoingSession(start, end, current)) {
             holder.sessionStatus.setVisibility(View.VISIBLE);
-            holder.sessionStatus.setText("ONGOING");
+            holder.sessionStatus.setText(R.string.status_ongoing);
         }
 
         Track track = session.getTrack();
@@ -179,9 +179,12 @@ public class SessionsListAdapter extends BaseRVAdapter<Session, SessionViewHolde
         holder.sessionTime.setText(String.format("%s - %s",
                 DateConverter.formatDateWithDefault(DateConverter.FORMAT_12H, session.getStartsAt()),
                 DateConverter.formatDateWithDefault(DateConverter.FORMAT_12H, session.getEndsAt())));
+
         if(session.getMicrolocation() != null) {
             String locationName = Utils.checkStringEmpty(session.getMicrolocation().getName());
             holder.sessionLocation.setText(locationName);
+        } else {
+            holder.sessionLocation.setText(context.getString(R.string.location_not_decided));
         }
 
         Observable.just(session.getSpeakers())
@@ -220,6 +223,8 @@ public class SessionsListAdapter extends BaseRVAdapter<Session, SessionViewHolde
         final int sessionId = session.getId();
 
         holder.sessionBookmarkIcon.setOnClickListener(v -> {
+            if (track == null) return;
+
             if (session.getIsBookmarked()) {
 
                 realmRepo.setBookmark(sessionId, false).subscribe();

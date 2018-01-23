@@ -2,6 +2,7 @@ package org.fossasia.openevent.fragments;
 
 
 import android.app.AlertDialog;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -30,24 +31,21 @@ import org.fossasia.openevent.R;
 import org.fossasia.openevent.adapters.SpeakersListAdapter;
 import org.fossasia.openevent.api.DataDownloadManager;
 import org.fossasia.openevent.data.Speaker;
-import org.fossasia.openevent.dbutils.RealmDataRepository;
 import org.fossasia.openevent.events.SpeakerDownloadEvent;
 import org.fossasia.openevent.utils.ConstantStrings;
 import org.fossasia.openevent.utils.NetworkUtils;
 import org.fossasia.openevent.utils.SharedPreferencesUtil;
 import org.fossasia.openevent.utils.Utils;
 import org.fossasia.openevent.utils.Views;
-import org.fossasia.openevent.views.MarginDecoration;
+import org.fossasia.openevent.viewmodels.SpeakersListFragmentViewModel;
+import org.fossasia.openevent.views.stickyheadersrecyclerview.StickyRecyclerHeadersDecoration;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
-import io.realm.RealmResults;
 import timber.log.Timber;
-
-import static org.fossasia.openevent.utils.SortOrder.sortOrderSpeaker;
 
 public class SpeakersListFragment extends BaseFragment implements SearchView.OnQueryTextListener {
 
@@ -69,8 +67,8 @@ public class SpeakersListFragment extends BaseFragment implements SearchView.OnQ
 
     private int sortType;
 
-    private RealmDataRepository realmRepo = RealmDataRepository.getDefaultInstance();
-    private RealmResults<Speaker> realmResults;
+    private SpeakersListFragmentViewModel speakersListFragmentViewModel;
+    private RecyclerView.AdapterDataObserver adapterDataObserver;
 
     @Nullable
     @Override
@@ -84,9 +82,8 @@ public class SpeakersListFragment extends BaseFragment implements SearchView.OnQ
 
         sortType = SharedPreferencesUtil.getInt(ConstantStrings.PREF_SORT_SPEAKER, 0);
 
-        if (savedInstanceState != null && savedInstanceState.getString(SEARCH) != null) {
-            searchText = savedInstanceState.getString(SEARCH);
-        }
+        speakersListFragmentViewModel = ViewModelProviders.of(this).get(SpeakersListFragmentViewModel.class);
+        searchText = speakersListFragmentViewModel.getSearchText();
 
         loadData();
 
@@ -102,24 +99,27 @@ public class SpeakersListFragment extends BaseFragment implements SearchView.OnQ
         final int spanCount = (int) (width / 150.00);
         gridLayoutManager = new GridLayoutManager(getActivity(), spanCount);
 
-        speakersListAdapter = new SpeakersListAdapter(speakers, getActivity());
+        speakersListAdapter = new SpeakersListAdapter(speakers);
 
-        speakersRecyclerView.addItemDecoration(new MarginDecoration(getContext()));
         speakersRecyclerView.setHasFixedSize(true);
         speakersRecyclerView.setAdapter(speakersListAdapter);
         speakersRecyclerView.setLayoutManager(gridLayoutManager);
+        final StickyRecyclerHeadersDecoration headersDecoration = new StickyRecyclerHeadersDecoration(speakersListAdapter);
+        speakersRecyclerView.addItemDecoration(headersDecoration);
+        adapterDataObserver = new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onChanged() {
+                headersDecoration.invalidateHeaders();
+            }
+        };
+        speakersListAdapter.registerAdapterDataObserver(adapterDataObserver);
     }
 
     private void loadData() {
-        realmResults = realmRepo.getSpeakers(sortOrderSpeaker());
-        realmResults.addChangeListener((speakers, orderedCollectionChangeSet) -> {
-            this.speakers.clear();
-            this.speakers.addAll(speakers);
-
-            speakersListAdapter.setCopyOfSpeakers(speakers);
+        speakersListFragmentViewModel.getSpeakers(sortType, searchText).observe(this,speakersList ->{
+            speakers.clear();
+            speakers.addAll(speakersList);
             speakersListAdapter.notifyDataSetChanged();
-            if (!Utils.isEmpty(searchText))
-                speakersListAdapter.filter(searchText);
             handleVisibility();
         });
     }
@@ -143,19 +143,11 @@ public class SpeakersListFragment extends BaseFragment implements SearchView.OnQ
     public void onDestroyView() {
         super.onDestroyView();
         Utils.unregisterIfUrlValid(this);
+        speakersListAdapter.unregisterAdapterDataObserver(adapterDataObserver);
 
         // Remove listeners to fix memory leak
-        realmResults.removeAllChangeListeners();
         if(swipeRefreshLayout != null) swipeRefreshLayout.setOnRefreshListener(null);
         if(searchView != null) searchView.setOnQueryTextListener(null);
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle bundle) {
-        if (isAdded() && searchView != null) {
-            bundle.putString(SEARCH, searchText);
-        }
-        super.onSaveInstanceState(bundle);
     }
 
     @Override
@@ -257,7 +249,8 @@ public class SpeakersListFragment extends BaseFragment implements SearchView.OnQ
     @Override
     public boolean onQueryTextChange(String query) {
         searchText = query;
-        speakersListAdapter.filter(query);
+        loadData();
+        speakersListAdapter.animateTo(speakers);
         Utils.displayNoResults(noSpeakersResultView, speakersRecyclerView, noSpeakersView, speakersListAdapter.getItemCount());
 
         return true;

@@ -6,6 +6,10 @@ public class ConstantStrings {
 
     public static final String USER_EMAIL = "user_email";
 
+    public static final String USER_FIRST_NAME = "user_first_name";
+
+    public static final String USER_LAST_NAME = "user_last_name";
+
     public static final String TRACK = "TRACK";
 
     public static final String TRACK_ID = "TRACK_ID";
@@ -68,11 +72,15 @@ public class ConstantStrings {
 
     public static final String SESSION_MAP_ID = "sessionMapId";
 
+    public static final String IMAGE_ZOOM_KEY = "imageZoom";
+
     //Sort order
 
     public static final String PREF_SORT_SCHEDULE = "schedule_sort_type";
 
     public static final String PREF_SORT_SPEAKER = "speaker_sort_type";
+
+    public static final String PREF_SORT_ORDER = "sort_order";
     
     public static final String FACEBOOK_PAGE_ID = "pageId";
 

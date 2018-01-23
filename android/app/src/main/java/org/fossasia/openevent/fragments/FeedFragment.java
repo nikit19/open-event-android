@@ -1,6 +1,7 @@
 package org.fossasia.openevent.fragments;
 
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -15,6 +16,7 @@ import org.fossasia.openevent.R;
 import org.fossasia.openevent.adapters.FeedAdapter;
 import org.fossasia.openevent.api.APIClient;
 import org.fossasia.openevent.data.facebook.FeedItem;
+import org.fossasia.openevent.modules.OnImageZoomListener;
 import org.fossasia.openevent.utils.ConstantStrings;
 import org.fossasia.openevent.utils.NetworkUtils;
 import org.fossasia.openevent.utils.SharedPreferencesUtil;
@@ -26,6 +28,8 @@ import java.util.List;
 
 import butterknife.BindView;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
@@ -37,6 +41,7 @@ public class FeedFragment extends BaseFragment {
     private FeedAdapter feedAdapter;
     private List<FeedItem> feedItems;
     private ProgressDialog downloadProgressDialog;
+    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @BindView(R.id.feed_swipe_refresh) SwipeRefreshLayout swipeRefreshLayout;
     @BindView(R.id.feed_recycler_view) RecyclerView feedRecyclerView;
@@ -51,7 +56,8 @@ public class FeedFragment extends BaseFragment {
         feedItems = new ArrayList<>();
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getContext());
         feedRecyclerView.setLayoutManager(mLayoutManager);
-        feedAdapter = new FeedAdapter(getContext(), (FeedAdapter.AdapterCallback)getActivity(), feedItems);
+        feedAdapter = new FeedAdapter(getContext(), (FeedAdapter.OpenCommentsDialogListener)getActivity(), feedItems);
+        feedAdapter.setOnImageZoomListener((OnImageZoomListener)getActivity());
         feedRecyclerView.setAdapter(feedAdapter);
 
         setupProgressBar();
@@ -73,7 +79,7 @@ public class FeedFragment extends BaseFragment {
             return;
         }
 
-        APIClient.getFacebookGraphAPI()
+        compositeDisposable.add(APIClient.getFacebookGraphAPI()
                 .getPosts(SharedPreferencesUtil.getString(ConstantStrings.FACEBOOK_PAGE_ID, null),
                         getContext().getResources().getString(R.string.fields),
                         getContext().getResources().getString(R.string.facebook_access_token))
@@ -90,11 +96,12 @@ public class FeedFragment extends BaseFragment {
                             .setAction(R.string.retry_download, view -> refresh()).show();
                     Timber.d("Refresh not done");
                     showProgressBar(false);
+                    swipeRefreshLayout.setRefreshing(false);
                 }, () -> {
                     Views.setSwipeRefreshLayout(swipeRefreshLayout, false);
                     Timber.d("Refresh done");
                     showProgressBar(false);
-                });
+                }));
     }
 
     public void handleVisibility() {
@@ -110,7 +117,6 @@ public class FeedFragment extends BaseFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-
         if(swipeRefreshLayout != null) swipeRefreshLayout.setOnRefreshListener(null);
     }
 
@@ -120,15 +126,17 @@ public class FeedFragment extends BaseFragment {
             @Override
             public void networkAvailable() {
                 // Network is available
-                if (SharedPreferencesUtil.getString(ConstantStrings.FACEBOOK_PAGE_ID, null) == null)
-                    APIClient.getFacebookGraphAPI().getPageId(SharedPreferencesUtil.getString(ConstantStrings.FACEBOOK_PAGE_NAME, null),
+                swipeRefreshLayout.setRefreshing(true);
+                if (SharedPreferencesUtil.getString(ConstantStrings.FACEBOOK_PAGE_ID, null) == null && !compositeDisposable.isDisposed())
+                    compositeDisposable.dispose();
+                compositeDisposable.add(APIClient.getFacebookGraphAPI().getPageId(SharedPreferencesUtil.getString(ConstantStrings.FACEBOOK_PAGE_NAME, null),
                             getResources().getString(R.string.facebook_access_token))
                             .subscribeOn(Schedulers.io())
                             .observeOn(AndroidSchedulers.mainThread())
                             .subscribe(facebookPageId -> {
                                 String id = facebookPageId.getId();
                                 SharedPreferencesUtil.putString(ConstantStrings.FACEBOOK_PAGE_ID, id);
-                            });
+                            }));
                 downloadFeed();
             }
 
@@ -159,10 +167,30 @@ public class FeedFragment extends BaseFragment {
         downloadProgressDialog.setCancelable(false);
         String shownMessage = String.format(getString(R.string.downloading_format), getString(R.string.menu_feed));
         downloadProgressDialog.setMessage(shownMessage);
+        downloadProgressDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.cancel), (dialogInterface, i) -> {
+            downloadProgressDialog.dismiss();
+            disposeRxSubscriptions();
+            getActivity().onBackPressed();
+        });
+    }
+
+    private void disposeRxSubscriptions() {
+        if (!compositeDisposable.isDisposed()) {
+            compositeDisposable.dispose();
+        }
     }
 
     @Override
     protected int getLayoutResource() {
         return R.layout.list_feed;
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (feedAdapter != null) {
+            feedAdapter.removeOnImageZoomListener();
+            feedAdapter.removeOpenCommentsDialogListener();
+        }
     }
 }
