@@ -1,7 +1,6 @@
 package org.fossasia.openevent.fragments;
 
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.arch.lifecycle.ViewModelProviders;
@@ -112,11 +111,12 @@ public class AboutFragment extends BaseFragment implements OnBookmarkSelectedLis
     private static final String MAP_FRAGMENT_TAG = "mapFragment";
 
     private Event event;
-    private OnMapSelectedListener mapFragmentCallback;
+    private static OnMapSelectedListener mapFragmentCallback;
 
     public interface OnMapSelectedListener {
         public void onMapSelected(boolean value);
     }
+
     private AboutFragmentViewModel aboutFragmentViewModel;
 
     @Override
@@ -142,15 +142,16 @@ public class AboutFragment extends BaseFragment implements OnBookmarkSelectedLis
                 mapFragment.setArguments(bundle);
                 fragmentTransaction.replace(R.id.content_frame, mapFragment, MAP_FRAGMENT_TAG).commit();
                 ((MainActivity) getActivity()).getSupportActionBar().setTitle(event.getLocationName());
-                mapFragmentCallback.onMapSelected(true);
+                if (mapFragmentCallback != null)
+                    mapFragmentCallback.onMapSelected(true);
             }
         });
 
         eventDate.setOnClickListener(v -> {
             if (event.isValid())
                 startActivity(Utils.eventCalendar(event));
-
         });
+
         aboutFragmentViewModel = ViewModelProviders.of(this).get(AboutFragmentViewModel.class);
 
         return view;
@@ -168,6 +169,12 @@ public class AboutFragment extends BaseFragment implements OnBookmarkSelectedLis
             event = eventData;
             loadEvent(event);
         });
+    }
+
+    public static AboutFragment newInstance(OnMapSelectedListener onMapSelectedListener) {
+        AboutFragment fragment = new AboutFragment();
+        mapFragmentCallback = onMapSelectedListener;
+        return fragment;
     }
 
     @Subscribe
@@ -365,17 +372,6 @@ public class AboutFragment extends BaseFragment implements OnBookmarkSelectedLis
     public void onResume() {
         super.onResume();
         loadData();
-    }
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-
-        try {
-            mapFragmentCallback = (OnMapSelectedListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + "must implement OnMapSelectedListener");
-        }
     }
 
     @Override

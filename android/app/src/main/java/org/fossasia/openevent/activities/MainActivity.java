@@ -110,7 +110,6 @@ import io.realm.RealmList;
 import io.realm.RealmResults;
 import timber.log.Timber;
 
-
 public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommentsDialogListener, OnImageZoomListener, AboutFragment.OnMapSelectedListener {
 
     private static final String STATE_FRAGMENT = "stateFragment";
@@ -144,6 +143,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
     private CompositeDisposable disposable;
     private RealmDataRepository realmRepo = RealmDataRepository.getDefaultInstance();
     private Event event; // Future Event, stored to remove listeners
+    private AboutFragment.OnMapSelectedListener onMapSelectedListener = value -> isMapFragment = value;
 
     public static Intent createLaunchFragmentIntent(Context context) {
         return new Intent(context, MainActivity.class)
@@ -523,7 +523,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
 
         switch (menuItemId) {
             case R.id.nav_home:
-                replaceFragment(new AboutFragment(), R.string.menu_home);
+                replaceFragment(AboutFragment.newInstance(onMapSelectedListener), R.string.menu_home);
                 break;
             case R.id.nav_tracks:
                 replaceFragment(new TracksFragment(), R.string.menu_tracks);
@@ -584,11 +584,11 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
                 snackbar.show();
                 new Handler().postDelayed(() -> backPressedOnce = false, 2000);
             } else if (isMapFragment) {
-                replaceFragment(new AboutFragment(), R.string.menu_home);
+                replaceFragment(AboutFragment.newInstance(onMapSelectedListener), R.string.menu_home);
                 addShadowToAppBar(true);
             }
         } else {
-            replaceFragment(new AboutFragment(), R.string.menu_home);
+            replaceFragment(AboutFragment.newInstance(onMapSelectedListener), R.string.menu_home);
             navigationView.setCheckedItem(R.id.nav_home);
             addShadowToAppBar(true);
         }
@@ -887,8 +887,9 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
 
     @Override
     public void onMapSelected(boolean value) {
-        isMapFragment = value;
+        //it is used to check if the maps fragment is selected
     }
+
     public void onZoom(String imageUri) {
         ZoomableImageUtil.showZoomableImageDialogFragment(fragmentManager, imageUri);
     }

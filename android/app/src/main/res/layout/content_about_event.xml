@@ -32,7 +32,6 @@
                 android:id="@+id/logo"
                 android:layout_width="@dimen/home_logo_width"
                 android:layout_height="wrap_content"
-
                 android:layout_gravity="center"
                 android:paddingBottom="@dimen/padding_medium"
                 android:paddingTop="@dimen/padding_medium"

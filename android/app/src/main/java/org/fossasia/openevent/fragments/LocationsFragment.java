@@ -57,7 +57,6 @@ public class LocationsFragment extends BaseFragment implements SearchView.OnQuer
     @BindView(R.id.txt_no_result_locations)
     protected TextView noResultsView;
 
-
     private List<Microlocation> locations = new ArrayList<>();
     private LocationsListAdapter locationsListAdapter;
 
@@ -188,7 +187,6 @@ public class LocationsFragment extends BaseFragment implements SearchView.OnQuer
         locationsListAdapter.unregisterAdapterDataObserver(adapterDataObserver);
 
         // Remove listeners to fix memory leak
-
         if (swipeRefreshLayout != null) swipeRefreshLayout.setOnRefreshListener(null);
         if (searchView != null) searchView.setOnQueryTextListener(null);
     }

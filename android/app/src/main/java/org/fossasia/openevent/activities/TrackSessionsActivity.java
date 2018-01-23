@@ -291,7 +291,6 @@ public class TrackSessionsActivity extends BaseActivity implements SearchView.On
     @Override
     public boolean onQueryTextChange(String query) {
         searchText = query;
-
         loadSessions();
         Utils.displayNoResults(noResultSessionsView, sessionsRecyclerView, noSessionsView, sessionsListAdapter.getItemCount());
 
